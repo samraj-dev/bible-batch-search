@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bible Verse Search</title>
+	<style>
+	#searchInput {
+		resize: none;
+		overflow-y: hidden;
+		width: 100%;
+	}
+	</style>
+		<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>-->
+		<script src="scripts/pdfmake.min.js"></script>
+		<!--<script src="scripts/vfs_default_fonts.js"></script>-->
+		<script src="scripts/vfs_fonts.js"></script>
+</head>
+<body>
+
+	<h3>Click a Book to Search</h3>
+    <div id="bookContainer"></div>
+    <select id="books-combo-box" style='display:none'></select>
+	
+    <h2>Bible Verse Search</h2>
+    <label for="searchInput">Enter Verses (comma-separated):</label>
+	<textarea id="searchInput" oninput="autoResize(this)">Genesis 12:2-5,Psalms 1,Proverbs 1:1</textarea>
+    <!-- <input type="text" id="searchInput" value="Genesis 12:2-5,Psalms 1,Proverbs 1:1">-->
+    <button onclick="searchVerses()">Search</button>
+    <button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
+    <button onclick="copyVersesToClipboard()" id='copyToClipboardBtn' disabled>Copy Verses to Clipboard</button>
+	<button onclick="document.getElementById('searchInput').value='';" style="float: right;">Clear</button>
+
+    <div id="resultContainer"></div>
+	<textarea id="versesTextArea" style='display:none'></textarea>
+
+    <script>
+        let bibleData;
+		
+		const malyalamBibleBooks = [
+			"ഉല്പത്തി", "പുറപ്പാട്", "ലേവ്യപുസ്തകം", "സംഖ്യാപുസ്തകം", "ആവർത്തനം", "യോശുവ", "ന്യായാധിപന്മാർ",
+			"രൂത്ത്", "1 ശമൂവേൽ", "2 ശമൂവേൽ", "1 രാജാക്കന്മാർ", "2 രാജാക്കന്മാർ", "1 ദിനവൃത്താന്തം",
+			"2 ദിനവൃത്താന്തം", "എസ്രാ", "നെഹെമ്യാവു", "എസ്ഥേർ", "ഇയ്യോബ്", "സങ്കീർത്തനങ്ങൾ",
+			"സദൃശ്യവാക്യങ്ങൾ", "സഭാപ്രസംഗി", "ഉത്തമഗീതം", "യെശയ്യാ", "യിരമ്യാവു", "വിലാപങ്ങൾ",
+			"യെഹേസ്കേൽ", "ദാനീയേൽ", "ഹോശേയ", "യോവേൽ", "ആമോസ്", "ഓബദ്യാവു", "യോനാ",
+			"മീഖാ", "നഹൂം", "ഹബക്കൂക്ക്", "സെഫന്യാവു", "ഹഗ്ഗായി", "സെഖര്യാവു", "മലാഖി", "മത്തായി",
+			"മർക്കൊസ്", "ലൂക്കോസ്", "യോഹന്നാൻ", "പ്രവൃത്തികൾ", "റോമർ", "1 കൊരിന്ത്യർ", "2 കൊരിന്ത്യർ",
+			"ഗലാത്യർ", "എഫെസ്യർ", "ഫിലിപ്പിയർ", "കൊലൊസ്സ്യർ", "1 തെസ്സലൊനീക്യർ", "2 തെസ്സലൊനീക്യർ",
+			"1 തിമൊഥെയൊസ്", "2 തിമൊഥെയൊസ്", "തീത്തൊസ്", "ഫിലേമോൻ", "എബ്രായർ", "യാക്കോബ്",
+			"1 പത്രൊസ്", "2 പത്രൊസ്", "1 യോഹന്നാൻ", "2 യോഹന്നാൻ", "3 യോഹന്നാൻ","യൂദാ", "വെളിപ്പാട്"
+		];
+		
+		const englishBibleBooks = [
+			"Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua",
+			"Judges", "Ruth", "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles",
+			"2 Chronicles", "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes",
+			"Song of Solomon", "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel",
+			"Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah",
+			"Haggai", "Zechariah", "Malachi", "Matthew", "Mark", "Luke", "John", "Acts", "Romans",
+			"1 Corinthians", "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians",
+			"1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon",
+			"Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
+		];
+		
+		loadBibleData();
+		loadBooksComboBox();
+		loadBooksButtons();
+		autoResize(document.getElementById('searchInput'));
+		
+		function loadBooksButtons() {
+			const bookContainer = document.getElementById('bookContainer');
+			// Populate buttons
+			englishBibleBooks.forEach((book, index) => {
+				const inputElm = document.createElement('input');
+				inputElm.type = 'button';
+				inputElm.value = book;
+				inputElm.onclick = function() {
+					bookButtonClickHandler(this);
+				};
+				bookContainer.appendChild(inputElm);
+				const spanElm = document.createElement('span');
+				spanElm.innerHTML = '&nbsp;';
+				bookContainer.appendChild(spanElm);
+			});
+		}
+		
+		function bookButtonClickHandler(buttonObj) {
+			const searchInputTxtArea = document.getElementById('searchInput');
+			let searchInputValue = searchInputTxtArea.value;
+			if (isLastCharacterComma(searchInputValue)) {
+				searchInputTxtArea.value += buttonObj.value;
+			} else {			
+				searchInputTxtArea.value += (',' + buttonObj.value);
+			}
+		}
+		
+		function isLastCharacterComma(inputString) {
+			// Remove trailing whitespaces
+			var trimmedString = inputString.trim();
+
+			// Check if the last character is a comma
+			return trimmedString.charAt(trimmedString.length - 1) === ',';
+		}
+		
+		function loadBooksComboBox() {
+			// Get the select element
+			const booksComboBox = document.getElementById('books-combo-box');
+
+			// Populate the combo box with options
+			englishBibleBooks.forEach((book, index) => {
+				const option = document.createElement('option');
+				option.value = index;
+				option.text = book;
+				booksComboBox.appendChild(option);
+			});
+		}
+		
+		function loadBibleData() {
+			<!-- Data Source: https://github.com/godlytalias/Bible-Database/tree/master/Malayalam -->
+			fetch('https://raw.githubusercontent.com/godlytalias/Bible-Database/master/Malayalam/bible.json')
+				.then(response => response.json())
+				.then(data => {
+					bibleData = data;
+				})
+				.catch(error => console.error('Error fetching JSON:', error));
+		}
+
+        function searchVerses() {
+			const searchInput = document.getElementById('searchInput').value;
+			if (searchInput === null || searchInput.length === 0) {
+				alert('Please provide some verses to search!');
+				return;
+			}			
+            
+			const resultContainer = document.getElementById('resultContainer');
+			const versesTextAreaObj = document.getElementById('versesTextArea');
+            resultContainer.innerHTML = '';
+			versesTextAreaObj.value = '';
+			
+            const searchInputs = searchInput.split(',');
+			searchInputs.forEach(searchInputVerse => {
+				searchInputVerse = searchInputVerse.trim();
+				let searchVerseObject = parseSearchInput(searchInputVerse);
+				console.log(JSON.stringify(searchVerseObject, null, 2));
+				const chapterObj = bibleData.Book[searchVerseObject.bookIndex].Chapter[searchVerseObject.chapterIndex];
+				if (searchVerseObject.verses.length > 0) {
+					searchVerseObject.verses.forEach(verse => {
+						let verseObj = chapterObj.Verse[verse.verseIndex];
+						resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}</p>`;
+						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}\r\n`;
+					});
+				} else {
+					let verseNo = 1;
+					chapterObj.Verse.forEach(verseObj => {
+						resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}</p>`;
+						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}\r\n`;
+						verseNo++;
+					});
+				}
+			});
+			document.getElementById('copyToClipboardBtn').disabled = false;
+			document.getElementById('exportToPDFBtn').disabled = false;			
+        }
+		
+		function parseSearchInput(searchInput) {
+			const [bookName, rest] = searchInput.split(' ');
+			const [chapter, versesRange] = rest.split(':');
+
+			let verses = [];
+
+			if (versesRange) {
+				if (versesRange.includes('-')) {
+					const [start, end] = versesRange.split('-');
+					const startVerse = parseInt(start, 10);
+					const endVerse = parseInt(end, 10);
+
+					for (let i = startVerse; i <= endVerse; i++) {
+						verses.push({verseNo: i, verseIndex: i-1});
+					}
+				} else {
+					verseNo = parseInt(versesRange, 10);
+					verses.push({verseNo: verseNo, verseIndex: verseNo-1});
+				}
+			}
+
+			const result = {
+				bookName: bookName,
+				bookIndex: getNumberFromBookName(bookName),
+				chapter: parseInt(chapter, 10),
+				chapterIndex: parseInt(chapter, 10)-1 ,
+				verses: verses
+			};
+			return result;
+		}
+		
+		function getNumberFromBookName(bookName) {
+			return englishBibleBooks.indexOf(bookName);
+		}
+		
+		function autoResize(textarea) {
+			textarea.style.height = 'auto';
+			textarea.style.height = (textarea.scrollHeight) + 'px';
+		}
+
+        function exportVersesToPDF() {
+			<!-- https://pdfmake.github.io/docs/0.1/fonts/custom-fonts-client-side/vfs/ -->
+			// Get the textarea element by its id
+			var exportDataObj = document.getElementById("versesTextArea");
+
+			// Get the data to export from the textarea
+			var dataToExport = exportDataObj.value;
+			
+			pdfMake.fonts = {
+				'Nirmala UI': {
+					normal: 'Nirmala.ttf',
+					bold: 'NirmalaB.ttf',
+					semilight: 'NirmalaS.ttf'
+				},
+				Roboto: {
+					normal: 'Roboto-Regular.ttf',
+					bold: 'Roboto-Medium.ttf',
+					italics: 'Roboto-Italic.ttf',
+					bolditalics: 'Roboto-MediumItalic.ttf'
+				}
+			};
+
+			// Create a PDF document definition
+			var docDefinition = {
+				content: [
+					{ text: dataToExport, fontSize: 12 },
+				],				
+				defaultStyle: {
+					font: 'Nirmala UI'
+				}
+			};
+
+			// Create a PDF using pdfmake
+			pdfMake.createPdf(docDefinition).download("bible-verses.pdf");
+        }
+		
+		function copyVersesToClipboard() {
+			copyToClipboard('versesTextArea');
+		}
+		
+		function copyToClipboard(textAreaId) {
+
+			/* Create textarea object which hold the text to be copied */
+			var dataTextArea = document.getElementById(textAreaId);
+			dataTextArea.style.display = 'inline';
+			
+			/* Select the text in the temporary textarea */
+			dataTextArea.select();
+			dataTextArea.setSelectionRange(0, 99999); /* For mobile devices */
+
+			/* Copy the selected text to the clipboard using the Clipboard API */
+			document.execCommand("copy");
+			dataTextArea.style.display = 'none';
+			/* Alert the user that the text has been copied */
+			alert("Copied to clipboard!");
+		}
+    </script>
+</body>
+</html>
