@@ -25,7 +25,7 @@
 	
     <h2>Bible Verse Search</h2>
     <label for="searchInput">Enter Verses (comma-separated):</label>
-	<textarea id="searchInput" oninput="autoResize(this)">Genesis 12:2-5,Psalms 1,Proverbs 1:1</textarea>
+	<textarea id="searchInput" oninput="autoResize(this)">യോഹന്നാൻ 3:16, സങ്കീർത്തനങ്ങൾ 1, യോശുവ 1:7-8</textarea>
     <!-- <input type="text" id="searchInput" value="Genesis 12:2-5,Psalms 1,Proverbs 1:1">-->
     <button onclick="searchVerses()">Search</button>
     <button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
@@ -71,7 +71,7 @@
 		function loadBooksButtons() {
 			const bookContainer = document.getElementById('bookContainer');
 			// Populate buttons
-			englishBibleBooks.forEach((book, index) => {
+			malyalamBibleBooks.forEach((book, index) => {
 				const inputElm = document.createElement('input');
 				inputElm.type = 'button';
 				inputElm.value = book;
@@ -195,7 +195,7 @@
 		}
 		
 		function getNumberFromBookName(bookName) {
-			return englishBibleBooks.indexOf(bookName);
+			return malyalamBibleBooks.indexOf(bookName);
 		}
 		
 		function autoResize(textarea) {
