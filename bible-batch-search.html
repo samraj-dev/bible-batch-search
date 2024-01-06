@@ -5,11 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bible Verse Search</title>
 	<style>
-	#searchInput {
-		resize: none;
-		overflow-y: hidden;
-		width: 100%;
-	}
+		#searchInput {
+			resize: none;
+			overflow-y: hidden;
+			width: 100%;
+		}
+		/*.button-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .left-buttons {
+            display: flex;
+        }
+
+        .right-buttons {
+            display: flex;
+        }
+
+        button {
+            margin-right: 5px; /* Adjust the margin as needed */
+			margin-bottom: 10px; /* Adjust the margin as needed */
+        }*/
 	</style>
 	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>-->
@@ -18,18 +35,21 @@
 	<script src="scripts/vfs_fonts.js"></script>
 </head>
 <body>
-	<h3>Click a Book to Search</h3>
+	<h3>Click a Book to add to the Search</h3>
     <div id="bookContainer"></div>
     <select id="books-combo-box" style='display:none'></select>
 	
-    <h2>Bible Verse Search</h2>
+    <h3>Bible Verse Search</h3>
     <label for="searchInput">Enter Verses (comma-separated):</label>
 	<textarea id="searchInput" oninput="autoResize(this)">യോഹന്നാൻ 3:16, സങ്കീർത്തനങ്ങൾ 1, യോശുവ 1:7-8</textarea>
     <!-- <input type="text" id="searchInput" value="Genesis 12:2-5,Psalms 1,Proverbs 1:1">-->
-    <button onclick="searchVerses()">Search</button>
-    <button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
-    <button onclick="copyVersesToClipboard()" id='copyToClipboardBtn' disabled>Copy Verses to Clipboard</button>
-	<button onclick="document.getElementById('searchInput').value='';" style="float: right;">Clear</button>
+	<div class="button-container">
+		<button onclick="searchVerses()">Search</button>
+		<button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
+		<button onclick="copyVersesToClipboard()" id='copyToClipboardBtn' disabled>Copy Verses to Clipboard</button>
+		<button onclick="document.getElementById('searchInput').value='';">Clear</button>
+		<button onclick="location.reload()">Refresh</button>
+	</div>
 
     <div id="resultContainer"></div>
 	<textarea id="versesTextArea" style='display:none'></textarea>
@@ -71,35 +91,35 @@
 			const bookContainer = document.getElementById('bookContainer');
 			// Populate buttons
 			malyalamBibleBooks.forEach((book, index) => {
+				const spanElm = document.createElement('span');
+				//spanElm.style.display = 'inline-block';
+				//spanElm.style.padding = '2px';
 				const inputElm = document.createElement('input');
 				inputElm.type = 'button';
 				inputElm.value = book;
 				inputElm.onclick = function() {
 					bookButtonClickHandler(this);
 				};
-				bookContainer.appendChild(inputElm);
-				const spanElm = document.createElement('span');
-				spanElm.innerHTML = '&nbsp;';
+				spanElm.appendChild(inputElm);
 				bookContainer.appendChild(spanElm);
+				
+				if (index == 38) {
+					let brElm = document.createElement('br');
+					bookContainer.appendChild(brElm);
+					brElm = document.createElement('br');
+					bookContainer.appendChild(brElm);
+				}
 			});
 		}
 		
 		function bookButtonClickHandler(buttonObj) {
 			const searchInputTxtArea = document.getElementById('searchInput');
 			let searchInputValue = searchInputTxtArea.value;
-			if (isLastCharacterComma(searchInputValue)) {
-				searchInputTxtArea.value += buttonObj.value;
+			if (isLastCharacterComma(searchInputValue) || searchInputValue == '') {
+				searchInputTxtArea.value += (buttonObj.value + " ");
 			} else {			
-				searchInputTxtArea.value += (',' + buttonObj.value);
+				searchInputTxtArea.value += (', ' + buttonObj.value + " ");
 			}
-		}
-		
-		function isLastCharacterComma(inputString) {
-			// Remove trailing whitespaces
-			var trimmedString = inputString.trim();
-
-			// Check if the last character is a comma
-			return trimmedString.charAt(trimmedString.length - 1) === ',';
 		}
 		
 		function loadBooksComboBox() {
@@ -140,7 +160,7 @@
             const searchInputs = searchInput.split(',');
 			searchInputs.forEach(searchInputVerse => {
 				searchInputVerse = searchInputVerse.trim();
-				let searchVerseObject = parseSearchInput(searchInputVerse);
+				let searchVerseObject = parseReference(searchInputVerse);
 				console.log(JSON.stringify(searchVerseObject, null, 2));
 				const chapterObj = bibleData.Book[searchVerseObject.bookIndex].Chapter[searchVerseObject.chapterIndex];
 				if (searchVerseObject.verses.length > 0) {
@@ -150,11 +170,10 @@
 						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}\r\n`;
 					});
 				} else {
-					let verseNo = 1;
-					chapterObj.Verse.forEach(verseObj => {
+					chapterObj.Verse.forEach((verseObj, index) => {
+						const verseNo = index + 1;
 						resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}</p>`;
 						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}\r\n`;
-						verseNo++;
 					});
 				}
 			});
@@ -162,8 +181,8 @@
 			document.getElementById('exportToPDFBtn').disabled = false;			
         }
 		
-		function parseSearchInput(searchInput) {
-			const [bookName, rest] = searchInput.split(' ');
+		function parseReference(reference) {
+			const [bookName, rest] = splitBookNameAndRest(reference);
 			const [chapter, versesRange] = rest.split(':');
 
 			let verses = [];
@@ -182,10 +201,10 @@
 					verses.push({verseNo: verseNo, verseIndex: verseNo-1});
 				}
 			}
-
+			const [formattedBookName, bookIndex] = getNumberFromBookName(bookName);
 			const result = {
-				bookName: bookName,
-				bookIndex: getNumberFromBookName(bookName),
+				bookName: formattedBookName,
+				bookIndex: bookIndex,
 				chapter: parseInt(chapter, 10),
 				chapterIndex: parseInt(chapter, 10)-1 ,
 				verses: verses
@@ -193,8 +212,31 @@
 			return result;
 		}
 		
+		function splitBookNameAndRest(reference) {
+			reference = combineSpaces(reference);
+			// For reference with spaces in book name, example: 1 John, 2 John etc.
+			if (startsWithDigit(reference)) {
+				return splitFromSecondSpace(reference);
+			} else {				
+				return reference.split(' ');
+			} 
+		}
+		
+		function combineSpaces(inputString) {
+			// Use a regular expression to replace multiple spaces with a single space
+			return inputString.replace(/\s+/g, ' ');
+		}
+		
 		function getNumberFromBookName(bookName) {
-			return malyalamBibleBooks.indexOf(bookName);
+			let formattedBookName = bookName;
+			let bookIndex = malyalamBibleBooks.indexOf(bookName);
+			if (bookIndex == -1) {
+				if (startsWithLetter(bookName)) {
+					bookIndex = englishBibleBooks.findIndex(book => book.toLowerCase().startsWith(bookName.toLowerCase()));
+					formattedBookName = malyalamBibleBooks[bookIndex];
+				}
+			}
+			return [formattedBookName, bookIndex];
 		}
 		
 		function autoResize(textarea) {
@@ -257,6 +299,38 @@
 			dataTextArea.style.display = 'none';
 			/* Alert the user that the text has been copied */
 			alert("Copied to clipboard!");
+		}
+		
+		
+		function isLastCharacterComma(inputString) {
+			// Remove trailing whitespaces
+			var trimmedString = inputString.trim();
+
+			// Check if the last character is a comma
+			return trimmedString.charAt(trimmedString.length - 1) === ',';
+		}
+		
+		function startsWithDigit(inputString) {
+			return /^\d/.test(inputString);
+		}
+		
+		function splitFromSecondSpace(inputString) {
+			const firstSpaceIndex = inputString.indexOf(' ');
+			const secondSpaceIndex = inputString.indexOf(' ', firstSpaceIndex + 1);
+
+			if (secondSpaceIndex !== -1) {
+				const firstPart = inputString.slice(0, secondSpaceIndex);
+				const secondPart = inputString.slice(secondSpaceIndex + 1);
+
+				return [firstPart, secondPart];
+			}
+
+			// Return the original string if there are not enough spaces
+			return [inputString];
+		}
+		
+		function startsWithLetter(inputString) {
+			return /^[a-zA-Z]/.test(inputString);
 		}
     </script>
 </body>
