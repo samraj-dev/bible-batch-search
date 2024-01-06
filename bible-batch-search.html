@@ -10,28 +10,8 @@
 			overflow-y: hidden;
 			width: 100%;
 		}
-		/*.button-container {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .left-buttons {
-            display: flex;
-        }
-
-        .right-buttons {
-            display: flex;
-        }
-
-        button {
-            margin-right: 5px; /* Adjust the margin as needed */
-			margin-bottom: 10px; /* Adjust the margin as needed */
-        }*/
 	</style>
-	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>-->
 	<script src="scripts/pdfmake.min.js"></script>
-	<!--<script src="scripts/vfs_default_fonts.js"></script>-->
 	<script src="scripts/vfs_fonts.js"></script>
 </head>
 <body>
@@ -41,13 +21,13 @@
 	
     <h3>Bible Verse Search</h3>
     <label for="searchInput">Enter Verses (comma-separated):</label>
-	<textarea id="searchInput" oninput="autoResize(this)">യോഹന്നാൻ 3:16, സങ്കീർത്തനങ്ങൾ 1, യോശുവ 1:7-8</textarea>
-    <!-- <input type="text" id="searchInput" value="Genesis 12:2-5,Psalms 1,Proverbs 1:1">-->
+	<textarea id="searchInput" oninput="autoResize(this)" placeholder="യോഹന്നാൻ 3:16, Ps 1, യോശുവ 1:7-8, mat 5"></textarea>
 	<div class="button-container">
 		<button onclick="searchVerses()">Search</button>
 		<button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
 		<button onclick="copyVersesToClipboard()" id='copyToClipboardBtn' disabled>Copy Verses to Clipboard</button>
-		<button onclick="document.getElementById('searchInput').value='';">Clear</button>
+		<button onclick="document.getElementById('searchInput').value='';">Clear Search</button>
+		<button onclick="clearVerses()">Clear Verses</button>
 		<button onclick="location.reload()">Refresh</button>
 	</div>
 
@@ -144,6 +124,13 @@
 				})
 				.catch(error => console.error('Error fetching JSON:', error));
 		}
+		
+		function clearVerses() {
+			const resultContainer = document.getElementById('resultContainer');
+			const versesTextAreaObj = document.getElementById('versesTextArea');
+            resultContainer.innerHTML = '';
+			versesTextAreaObj.value = '';
+		}
 
         function searchVerses() {
 			const searchInput = document.getElementById('searchInput').value;
@@ -154,8 +141,8 @@
             
 			const resultContainer = document.getElementById('resultContainer');
 			const versesTextAreaObj = document.getElementById('versesTextArea');
-            resultContainer.innerHTML = '';
-			versesTextAreaObj.value = '';
+            
+			clearVerses();
 			
             const searchInputs = searchInput.split(',');
 			searchInputs.forEach(searchInputVerse => {
@@ -231,10 +218,8 @@
 			let formattedBookName = bookName;
 			let bookIndex = malyalamBibleBooks.indexOf(bookName);
 			if (bookIndex == -1) {
-				if (startsWithLetter(bookName)) {
-					bookIndex = englishBibleBooks.findIndex(book => book.toLowerCase().startsWith(bookName.toLowerCase()));
-					formattedBookName = malyalamBibleBooks[bookIndex];
-				}
+				bookIndex = englishBibleBooks.findIndex(book => book.toLowerCase().startsWith(bookName.toLowerCase()));
+				formattedBookName = malyalamBibleBooks[bookIndex];
 			}
 			return [formattedBookName, bookIndex];
 		}
@@ -265,12 +250,19 @@
 					bolditalics: 'Roboto-MediumItalic.ttf'
 				}
 			};
-
+			
+			const lines = dataToExport.split(/\r?\n|\r|\n/g);		
+			const lineItems = lines.flatMap((lineItem, index) => [
+				{
+					text: lineItem,
+					fontSize: 12
+				},
+				{ text: " ", fontSize: 12 }
+			]);
+			
 			// Create a PDF document definition
 			var docDefinition = {
-				content: [
-					{ text: dataToExport, fontSize: 12 },
-				],				
+				content: lineItems,				
 				defaultStyle: {
 					font: 'Nirmala UI'
 				}
