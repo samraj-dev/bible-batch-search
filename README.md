@@ -8,6 +8,10 @@ Please note that data folder is not needed.
 
 Enter the verses you need to search in the text area and click `Search` button.
 
+## Try it
+
+Try it here: [https://obeyingchur.ch/malayalam-bible-search/](https://obeyingchur.ch/malayalam-bible-search/)
+
 ## Data
 Following link has the malayalam bible as JSON format which is used for this application [bible.json](https://github.com/godlytalias/Bible-Database/blob/master/Malayalam/bible.json)
 
