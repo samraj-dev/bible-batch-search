@@ -8,25 +8,75 @@
 		#searchInput {
 			resize: none;
 			overflow-y: hidden;
-			width: 100%;
+			width:100%;
+			border: none;
+			border-bottom: 2px solid red;
+			background-color: white;
+			background-image: url('https://obeyingchur.ch/content/images/2024/01/searchicon.png');
+			background-position: 10px 10px;
+			background-repeat: no-repeat;
+			padding-left: 40px;
+		}
+		input[type=button] {
+			background-color: white;
+			color: black;
+			border: 1px solid #b18c30;
+			border-radius: 8px;
+			padding: 5px 10px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 16px;
+			margin: 4px 2px;
+			cursor: pointer;
+		}
+		input[type=button]:hover {
+			background-color: #b18c30;
+			color: white;
+			box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24),0 17px 50px 0 rgba(0,0,0,0.19);
+		}
+		button {background-color: #b18c30;
+			border: none;
+			border-radius: 12px;
+			color: white;
+			padding: 10px 20px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			opacity: 0.6;
+			font-size: 16px;
+			margin: 4px 2px;
+			cursor: pointer;
+		}
+		button:hover {
+			background-color: #b18c30;
+			opacity: 1;
+		}
+		#resultContainer p {
+			display: block;
+			margin-top: 1em;
+			margin-bottom: 1em;
+			margin-left: 0;
+			margin-right: 0;
+			font-size: 20px;
+			color:rgb(60, 60, 60);
 		}
 	</style>
 	<script src="scripts/pdfmake.min.js"></script>
 	<script src="scripts/vfs_fonts.js"></script>
 </head>
 <body>
-	<h3>Click a Book to add to the Search</h3>
+	<h4>Click a Book to add to the Search</h4>
     <div id="bookContainer"></div>
     <select id="books-combo-box" style='display:none'></select>
-	
-    <h3>Bible Verse Search</h3>
-    <label for="searchInput">Enter Verses (comma-separated):</label>
+
+    <label for="searchInput"><h4>Enter Verses (comma-separated):</h4></label>
 	<textarea id="searchInput" oninput="autoResize(this)" placeholder="യോഹന്നാൻ 3:16, Ps 1, യോശുവ 1:7-8, mat 5"></textarea>
 	<div class="button-container">
 		<button onclick="searchVerses()">Search</button>
 		<button onclick="exportVersesToPDF()" id='exportToPDFBtn' disabled>Export Verses</button>
 		<button onclick="copyVersesToClipboard()" id='copyToClipboardBtn' disabled>Copy Verses to Clipboard</button>
-		<button onclick="document.getElementById('searchInput').value='';">Clear Search</button>
+		<button onclick="document.getElementById('searchInput').value='';autoResize(document.getElementById('searchInput'));">Clear Search</button>
 		<button onclick="clearVerses()">Clear Verses</button>
 		<button onclick="location.reload()">Refresh</button>
 	</div>
@@ -100,6 +150,8 @@
 			} else {			
 				searchInputTxtArea.value += (', ' + buttonObj.value + " ");
 			}
+			document.getElementById("searchInput").focus();
+			autoResize(document.getElementById('searchInput'));
 		}
 		
 		function loadBooksComboBox() {
@@ -147,21 +199,29 @@
             const searchInputs = searchInput.split(',');
 			searchInputs.forEach(searchInputVerse => {
 				searchInputVerse = searchInputVerse.trim();
-				let searchVerseObject = parseReference(searchInputVerse);
-				console.log(JSON.stringify(searchVerseObject, null, 2));
-				const chapterObj = bibleData.Book[searchVerseObject.bookIndex].Chapter[searchVerseObject.chapterIndex];
-				if (searchVerseObject.verses.length > 0) {
-					searchVerseObject.verses.forEach(verse => {
-						let verseObj = chapterObj.Verse[verse.verseIndex];
-						resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}</p>`;
-						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}\r\n`;
-					});
-				} else {
-					chapterObj.Verse.forEach((verseObj, index) => {
-						const verseNo = index + 1;
-						resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}</p>`;
-						versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}\r\n`;
-					});
+				let errorReferences = '';
+				try {
+					let searchVerseObject = parseReference(searchInputVerse);
+					console.log(JSON.stringify(searchVerseObject, null, 2));
+					const chapterObj = bibleData.Book[searchVerseObject.bookIndex].Chapter[searchVerseObject.chapterIndex];
+					if (searchVerseObject.verses.length > 0) {
+						searchVerseObject.verses.forEach(verse => {
+							let verseObj = chapterObj.Verse[verse.verseIndex];
+							resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}</p>`;
+							versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verse.verseNo} - ${verseObj.Verse}\r\n`;
+						});
+					} else {
+						chapterObj.Verse.forEach((verseObj, index) => {
+							const verseNo = index + 1;
+							resultContainer.innerHTML += `<p id="${verseObj.Verseid}">${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}</p>`;
+							versesTextAreaObj.value += `${searchVerseObject.bookName} ${searchVerseObject.chapter}:${verseNo} - ${verseObj.Verse}\r\n`;
+						});
+					}
+				} catch(err) {
+					errorReferences += ('\r\n' + searchInputVerse);
+				}
+				if (errorReferences != '') {
+					alert("Format of the following references (or the references) are invalid, other verses will be displayed" + errorReferences);
 				}
 			});
 			document.getElementById('copyToClipboardBtn').disabled = false;
