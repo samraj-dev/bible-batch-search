@@ -10,7 +10,8 @@ Enter the verses you need to search in the text area and click `Search` button.
 
 ## Try it
 
-Try it here: [https://obeyingchur.ch/malayalam-bible-search/](https://obeyingchur.ch/malayalam-bible-search/)
+1. [https://obeyingchur.ch/malayalam-bible-search/](https://obeyingchur.ch/malayalam-bible-search/)
+2. [https://samraj-dev.github.io/bible-batch-search](https://samraj-dev.github.io/bible-batch-search)
 
 ## Demo
 
